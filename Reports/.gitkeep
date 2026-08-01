@@ -1,0 +1,4 @@
+# This folder is created by the pipeline.
+# train_model.py writes accuracy.png, loss.png and the validation reports here.
+# test_model.py writes confusion_matrix.png, roc_curve.png and
+# classification_report.txt here.

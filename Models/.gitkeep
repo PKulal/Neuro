@@ -1,0 +1,7 @@
+# Trained models are written here by train_model.py:
+#   best_model.keras        best checkpoint by validation AUC
+#   autism_detector.keras   final model
+#   class_names.json        label mapping
+#   model_config.json       aggregation rule + decision threshold
+#
+# The .keras files are not tracked in git (too large, and reproducible).

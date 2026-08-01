@@ -1,0 +1,66 @@
+{
+  "model": "EfficientNetB3",
+  "weights_init": "imagenet",
+  "image_size": 224,
+  "channels": 3,
+  "input_scale": "0-255 (EfficientNet applies its own normalisation)",
+  "positive_class": "Autism",
+  "aggregation": "median",
+  "threshold": 0.5286,
+  "aggregation_comparison": {
+    "mean": {
+      "auc": 0.7222222222222222,
+      "accuracy": 0.6981132075471698,
+      "threshold": 0.5379
+    },
+    "median": {
+      "auc": 0.7264957264957264,
+      "accuracy": 0.7169811320754716,
+      "threshold": 0.5286
+    },
+    "trimmed_mean": {
+      "auc": 0.7222222222222222,
+      "accuracy": 0.7169811320754716,
+      "threshold": 0.535
+    },
+    "top_k_mean": {
+      "auc": 0.7193732193732194,
+      "accuracy": 0.6981132075471698,
+      "threshold": 0.5941
+    },
+    "mean_logit": {
+      "auc": 0.7207977207977209,
+      "accuracy": 0.6981132075471698,
+      "threshold": 0.539
+    }
+  },
+  "validation": {
+    "patients": 53,
+    "accuracy": 0.7169811320754716,
+    "precision": 0.8,
+    "recall": 0.5925925925925926,
+    "f1": 0.6808510638297872,
+    "auc": 0.7264957264957264,
+    "confusion_matrix": [
+      [
+        22,
+        4
+      ],
+      [
+        11,
+        16
+      ]
+    ]
+  },
+  "training": {
+    "seed": 42,
+    "batch_size": 32,
+    "stage1_epochs_run": 1,
+    "stage1_lr": 0.001,
+    "stage2_epochs_run": 1,
+    "stage2_lr": 1e-05,
+    "unfreeze_from": "block6a",
+    "train_patients": 213,
+    "val_patients": 53
+  }
+}
