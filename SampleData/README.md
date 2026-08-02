@@ -1,16 +1,35 @@
-# Sample MRI scans
+# Test MRI scans
 
-Four whole-brain MRI volumes so you can run the application immediately after
-cloning, without downloading the full 16 GB ABIDE-II archive.
+All **40 held-out test patients** — 20 Autism and 20 Healthy — so the
+application can be run and evaluated immediately after cloning, without
+downloading the full 16 GB ABIDE-II archive.
 
-| File | True diagnosis | Site |
-|---|---|---|
-| `Autism_29006.nii.gz` | Autism | ABIDEII-BNI_1 |
-| `Autism_29104.nii.gz` | Autism | ABIDEII-TCD_1 |
-| `Healthy_29020.nii.gz` | Healthy | ABIDEII-BNI_1 |
-| `Healthy_29130.nii.gz` | Healthy | ABIDEII-TCD_1 |
+```
+Autism_28752   Autism_28778   Autism_28789   Autism_28821   Autism_28860
+Autism_28869   Autism_28874   Autism_28875   Autism_29006   Autism_29009
+Autism_29043   Autism_29053   Autism_29104   Autism_29110   Autism_29112
+Autism_29115   Autism_30176   Autism_30181   Autism_30185   Autism_30188
 
-The true diagnosis is in each filename so you can check the model's answer.
+Healthy_28746  Healthy_28801  Healthy_28829  Healthy_28846  Healthy_28888
+Healthy_28892  Healthy_28902  Healthy_28904  Healthy_29020  Healthy_29040
+Healthy_29054  Healthy_29123  Healthy_29130  Healthy_29132  Healthy_29136
+Healthy_30149  Healthy_30193  Healthy_30195  Healthy_30203  Healthy_30206
+```
+
+Drawn 4 Autism + 4 Healthy from each of the five sites, so no single scanner
+dominates. The true diagnosis is in each filename so you can check the model's
+answer.
+
+## What "working correctly" means here
+
+All 40 files load, validate and produce a patient-level result — verified,
+40/40, no errors.
+
+**The model's answers are a different matter: 22 of 40 are correct (55%).** The
+software is functioning exactly as designed; the model simply has not learned a
+strong signal. Expect roughly 4 or 5 wrong answers out of every 10 scans. See
+the accuracy discussion in the main README before drawing conclusions from any
+single prediction.
 
 ## How to use them
 
