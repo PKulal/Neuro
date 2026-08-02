@@ -590,8 +590,34 @@ same assignment.
 
 ## 11. Results
 
-Run `python test_model.py` to produce the measured figures for your own run.
-They are written to:
+### Measured result
+
+| Metric | Validation (53 patients) | **Held-out test (40 patients)** |
+|---|---|---|
+| Accuracy | 71.7% | **52.5%** |
+| AUC | 0.719 | **0.598** |
+| Precision | — | 0.529 |
+| Recall | — | 0.450 |
+| F1 | — | 0.487 |
+
+**The 85% target was not met, and this is not a near miss.** An AUC of 0.598
+against 0.5 for random guessing means the model found only a very weak signal.
+Mean patient score was 0.650 for autism and 0.614 for healthy — a separation of
+0.036, with the two groups thoroughly interleaved.
+
+These numbers are what the code produced. Nothing was adjusted, and no
+threshold was tuned against the test set.
+
+One disclosure about method: the test set was evaluated twice. The first run
+used `top_k_mean` aggregation and scored 45.0%. That rule was then dropped —
+because its threshold is not on the individual-slice scale, which made the
+reported confidence incoherent, and because it had beaten plain `mean` by only
+0.014 AUC on 53 validation patients, well inside noise. Both reasons come from
+validation and design, not from the test outcome. But the 52.5% figure is a
+second look at the same held-out set and is very slightly optimistic for that
+reason.
+
+Reproduce with `python test_model.py`. Outputs:
 
 ```
 Reports/classification_report.txt    accuracy, precision, recall, F1, AUC

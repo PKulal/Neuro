@@ -626,6 +626,30 @@ one autistic and one healthy patient at random, how often would the model give
 the autistic one a higher score?* 0.5 is pure chance, 1.0 is perfect. It is the
 better measure of whether the model has learned anything at all.
 
+### Measured result
+
+| Metric | Validation (53) | **Held-out test (40)** |
+|---|---|---|
+| Accuracy | 71.7% | **52.5%** |
+| AUC | 0.719 | **0.598** |
+| Precision / Recall / F1 | — | 0.529 / 0.450 / 0.487 |
+
+The 85% target was not met. AUC 0.598 against 0.5 for chance means the model
+found only a very weak signal: mean patient score 0.650 for autism versus 0.614
+for healthy — a separation of 0.036, with the two groups heavily interleaved
+when sorted by score.
+
+**Method disclosure.** The held-out set was evaluated twice. The first run used
+`top_k_mean` aggregation and scored 45.0%. That rule was then dropped for two
+reasons, both independent of the test outcome: its threshold is not on the
+individual-slice scale, which made the reported confidence incoherent (one
+patient was called AUTISM while 84% of their slices scored below the line); and
+it had beaten plain `mean` by only 0.014 AUC on 53 validation patients, well
+inside noise. The selection code now excludes scale-incompatible rules and
+requires a 0.03 AUC margin before preferring anything over `mean`. Nonetheless,
+52.5% is a second look at the same held-out set and is slightly optimistic for
+that reason.
+
 ### Where results are written
 
 ```
