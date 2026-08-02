@@ -291,6 +291,21 @@ def aggregate(probs: np.ndarray, method: str) -> float:
 
 AGGREGATIONS = ["mean", "median", "trimmed_mean", "top_k_mean", "mean_logit"]
 
+# Only these produce a patient score on the SAME scale as an individual slice
+# score. top_k_mean averages just the top third, so its aggregate — and the
+# threshold calibrated for it — sit systematically higher than typical slice
+# scores. Selecting it makes the reported confidence incoherent, because
+# confidence counts how many individual slices fall on the verdict's side of
+# that threshold: a patient can be called AUTISM while 84% of their slices
+# score below the line.
+SCALE_COMPATIBLE = {"mean", "median", "trimmed_mean", "mean_logit"}
+
+# A different rule must beat plain `mean` by more than this to be preferred.
+# The validation set is 53 patients, where an AUC difference of a couple of
+# points is noise; without a margin the selection latches onto whichever rule
+# got lucky.
+SELECTION_MARGIN = 0.03
+
 
 def patient_probabilities(model: keras.Model, patients: list[dict],
                           method: str = "mean"):
@@ -501,8 +516,23 @@ def main() -> int:
                            "threshold": thr}
         print(f"{method:<15}{auc:>8.3f}{acc:>11.3f}{thr:>11.3f}")
 
-    best_method = max(results, key=lambda m: (results[m]["auc"], results[m]["accuracy"]))
+    # Choose among scale-compatible rules only, and require a clear margin over
+    # plain `mean` before preferring anything more elaborate.
+    eligible = [m for m in results if m in SCALE_COMPATIBLE]
+    challenger = max(eligible, key=lambda m: (results[m]["auc"], results[m]["accuracy"]))
+    if results[challenger]["auc"] - results["mean"]["auc"] > SELECTION_MARGIN:
+        best_method = challenger
+    else:
+        best_method = "mean"
     best_thr = results[best_method]["threshold"]
+
+    excluded = [m for m in results if m not in SCALE_COMPATIBLE]
+    if excluded:
+        print(f"\nExcluded (not on slice scale): {', '.join(excluded)}")
+    if best_method != challenger:
+        print(f"{challenger} led by "
+              f"{results[challenger]['auc'] - results['mean']['auc']:.3f} AUC, "
+              f"under the {SELECTION_MARGIN} margin - keeping mean")
     print(f"\nSelected aggregation: {best_method}  (threshold {best_thr:.3f})")
 
     # ---- validation report ---------------------------------------------

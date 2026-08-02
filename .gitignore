@@ -17,12 +17,22 @@ Models/*.keras
 Models/*.h5
 Models/*.weights.h5
 
+# ...except the exported inference-only model. At 44.5 MB it fits comfortably
+# under the 100 MB limit, so anyone cloning the repo can predict immediately
+# instead of retraining. Produced by: python export_model.py
+!Models/neuroconnect_model.keras
+!Models/model_config.json
+!Models/class_names.json
+
 # ---------------------------------------------------------------------------
 # Data
 #
-# The ABIDE-II MRI volumes and phenotypic CSVs are ~16 GB and are distributed
-# under a Data Usage Agreement that does not permit redistribution. Neither
-# the raw data nor anything derived from it belongs in this repository.
+# The ABIDE-II archive is ~16 GB -- far too large for a repository, and
+# regenerable by anyone who downloads it. ABIDE-II itself is licensed
+# CC BY-NC-SA, so redistribution is permitted with attribution, for
+# non-commercial use, under the same licence. On that basis four sample scans
+# are shipped in SampleData/ (25 MB) so the app is runnable straight after
+# cloning; the rest stays out.
 # ---------------------------------------------------------------------------
 ABIDEII-*/
 ABIDEII-*.csv
@@ -31,6 +41,10 @@ MAIN_Testing1/
 MAIN_Testing1_WholeMRI/
 *.nii
 *.nii.gz
+
+# ...except the four sample scans (see SampleData/README.md for licence terms)
+!SampleData/
+!SampleData/*.nii.gz
 
 # Run artefacts that reference local paths / specific patients
 dataset_manifest.json

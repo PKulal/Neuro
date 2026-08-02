@@ -20,6 +20,8 @@ MODELS_DIR = os.path.join(PROJECT_DIR, "Models")
 BEST_MODEL_PATH = os.path.join(MODELS_DIR, "best_model.keras")
 FINAL_MODEL_PATH = os.path.join(MODELS_DIR, "autism_detector.keras")
 MODEL_CONFIG_PATH = os.path.join(MODELS_DIR, "model_config.json")
+# Inference-only model shipped with the repository (see export_model.py)
+EXPORT_MODEL_PATH = os.path.join(MODELS_DIR, "neuroconnect_model.keras")
 
 
 def aggregate(probs: np.ndarray, method: str) -> float:
@@ -76,6 +78,15 @@ def confidence(slice_probs, patient_prob: float,
     agreement = float(np.mean((probs >= threshold) == verdict)) if probs.size else 0.0
     margin = abs(patient_prob - threshold)
 
+    # Agreement below 50% means most slices contradict the verdict, which can
+    # only happen if the threshold is not on the same scale as an individual
+    # slice score (see SCALE_COMPATIBLE in train_model.py). Reporting it as
+    # "confidence" would be nonsense, so fall back to measuring each slice
+    # against the patient's own aggregate and force the Low band.
+    if agreement < 0.5 and probs.size:
+        agreement = float(np.mean((probs >= patient_prob) == verdict))
+        return round(max(agreement, 1.0 - agreement) * 100.0, 1), "Low"
+
     if agreement >= 0.85:
         agree_band = 2
     elif agreement >= 0.70:
@@ -103,11 +114,18 @@ class NeuroPredictor:
         from tensorflow import keras
 
         if model_path is None:
-            model_path = (BEST_MODEL_PATH if os.path.exists(BEST_MODEL_PATH)
-                          else FINAL_MODEL_PATH)
-        if not os.path.exists(model_path):
+            # Prefer the locally trained checkpoints; fall back to the exported
+            # model that ships with the repository, so a fresh clone can
+            # predict without retraining.
+            for candidate in (BEST_MODEL_PATH, FINAL_MODEL_PATH, EXPORT_MODEL_PATH):
+                if os.path.exists(candidate):
+                    model_path = candidate
+                    break
+        if model_path is None or not os.path.exists(model_path):
             raise FileNotFoundError(
-                f"No trained model at {model_path}. Run train_model.py first."
+                f"No trained model found in {MODELS_DIR}. Either run "
+                f"train_model.py, or place a shared "
+                f"{os.path.basename(EXPORT_MODEL_PATH)} there."
             )
 
         self.model_path = model_path
