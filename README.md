@@ -16,6 +16,55 @@ EfficientNetB3 network, and combines those scores into a single result.
 
 ---
 
+## Quick start — running it in about 5 minutes
+
+**You do not need to download ABIDE-II, and you do not need to train anything.**
+A trained model and 40 test MRI scans ship with this repository.
+
+```powershell
+# 1. Clone
+git clone https://github.com/<user>/<repo>.git
+cd <repo>
+
+# 2. Create the virtual environment (Python 3.11 required -- see section 3)
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# 3. Install dependencies (~500 MB, a few minutes)
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+
+# 4. Run it
+python app.py
+```
+
+Then click **Select Brain MRI**, open the `SampleData` folder, pick any scan,
+and click **PREDICT**. The true diagnosis is in each filename, so you can check
+the answer immediately.
+
+Command-line equivalent:
+
+```powershell
+python test_model.py --mri SampleData\Autism_28860.nii.gz
+```
+
+Score all 40 test patients at once:
+
+```powershell
+python test_model.py
+```
+
+> **Before you judge the answers:** this model is **55% accurate** on those 40
+> patients (AUC 0.598, barely above the 0.5 of random guessing). Roughly 4 in
+> 10 predictions are wrong. `SampleData/RESULTS_PER_SCAN.md` lists exactly
+> which scans it gets right and which it gets wrong. See
+> [section 11](#11-results) before drawing any conclusion from a single scan.
+
+Everything below is for **reproducing the project from scratch** — downloading
+ABIDE-II, rebuilding the dataset and retraining. Skip it unless you need that.
+
+---
+
 ## Table of contents
 
 1. [Before you start: the data](#1-before-you-start-the-data)
@@ -35,15 +84,17 @@ EfficientNetB3 network, and combines those scores into a single result.
 
 ## 1. Before you start: the data
 
-**No MRI data is included in this repository, and you should not add any.**
+**You only need this section if you intend to retrain.** To just run the
+application, use the [quick start](#quick-start--running-it-in-about-5-minutes)
+above — a trained model and 40 test scans are already included.
 
-This project is built on **ABIDE-II** (Autism Brain Imaging Data Exchange II).
-That dataset is distributed under a Data Usage Agreement that requires you to
-register and does **not** permit redistribution. Committing the MRI volumes or
-the phenotypic CSVs to a public repository would breach those terms and would
-also publish human subject data.
+This project is built on **ABIDE-II** (Autism Brain Imaging Data Exchange II),
+released under a **Creative Commons Attribution-NonCommercial-ShareAlike**
+licence. Redistribution is permitted with attribution, for non-commercial use,
+under the same licence — which is why the 40 sample scans in `SampleData/` can
+be shipped here. The full 16 GB archive is not, purely because of its size.
 
-To obtain the data yourself:
+To obtain the full dataset yourself:
 
 1. Go to the ABIDE-II page on NITRC / the ABIDE project site
    (<http://fcon_1000.projects.nitrc.org/indi/abide/abide_II.html>).
@@ -57,37 +108,57 @@ download, as long as each site folder has a matching phenotypic CSV.
 
 ## 2. What is and is not in this repository
 
-**Included** — everything needed to reproduce the project:
+### Code
 
 ```
-create_dataset.py      builds the JPG dataset from raw MRI
-train_model.py         trains EfficientNetB3
-test_model.py          held-out evaluation + single-MRI prediction
 app.py                 the GUI
 predictor.py           model + aggregation + threshold (shared by GUI and CLI)
 neuro_utils.py         MRI loading, validation, slice extraction
-export_test_mri.py     helper: collect held-out whole MRIs for manual testing
-requirements.txt       pinned dependencies
+create_dataset.py      builds the JPG dataset from raw MRI
+train_model.py         trains EfficientNetB3
+test_model.py          held-out evaluation + single-MRI prediction
+export_model.py        strips optimizer state to make a shareable model
+export_test_mri.py     collects held-out whole MRIs into one folder
 run_app.bat            launcher that uses the virtual environment
-.gitignore
-README.md
+requirements.txt       pinned dependencies
 ```
 
-**Deliberately excluded** (see `.gitignore`) and why:
+### Trained model — so you never have to retrain
+
+| File | Size | What it is |
+|---|---|---|
+| `Models/neuroconnect_model.keras` | 44.5 MB | The trained network, inference only |
+| `Models/model_config.json` | small | Aggregation rule + decision threshold |
+| `Models/class_names.json` | small | Label mapping |
+
+`predictor.py` picks these up automatically, so a fresh clone predicts
+immediately. The training checkpoints are 112 MB because they also carry Adam
+optimizer state; `export_model.py` strips that, producing an identical-scoring
+44.5 MB model that fits under GitHub's 100 MB per-file limit.
+
+### Test data — so you have something to feed it
+
+| Folder | Size | What it is |
+|---|---|---|
+| `SampleData/` | 323 MB | All 40 held-out test patients (20 Autism, 20 Healthy) |
+| `SampleData/RESULTS_PER_SCAN.md` | small | Which scans the model gets right, and which it gets wrong |
+| `SampleData/README.md` | small | Provenance and licence terms |
+
+These 40 were excluded from training and from every tuning decision, so
+predictions on them are a genuine test. Four Autism and four Healthy come from
+each of the five scanner sites.
+
+### Deliberately excluded
 
 | Excluded | Size | Reason |
 |---|---|---|
 | `.venv/` | ~2 GB | Machine-specific; rebuild it locally |
-| `ABIDEII-*/`, `ABIDEII-*.csv` | ~16 GB | Restricted data, redistribution not permitted |
-| `MAIN_Training1/`, `MAIN_Testing1/` | ~120 MB | Derived from restricted data; regenerated by `create_dataset.py` |
-| `MAIN_Testing1_WholeMRI/` | ~322 MB | Copies of restricted MRI volumes |
-| `Models/*.keras` | 42–107 MB | `autism_detector.keras` exceeds **GitHub's 100 MB per-file hard limit**; reproducible from code |
-| `dataset_manifest.json`, `train_val_split.json` | small | Contain local paths and subject IDs |
+| `ABIDEII-*/`, `ABIDEII-*.csv` | ~16 GB | Too large for a repository; download from ABIDE if retraining |
+| `MAIN_Training1/`, `MAIN_Testing1/` | ~120 MB | Regenerated by `create_dataset.py` |
+| `Models/best_model.keras`, `autism_detector.keras` | 112 MB each | Over GitHub's limit; the exported model replaces them |
+| `dataset_manifest.json`, `train_val_split.json` | small | Contain machine-specific paths |
 
-Everything excluded is **regenerated by running the pipeline**. Nothing is lost.
-
-> If you must share the trained model, use **Git LFS** or attach it to a
-> **GitHub Release** — do not commit it directly, or your push will be rejected.
+Everything excluded is regenerated by running the pipeline.
 
 ---
 
@@ -261,6 +332,10 @@ python create_dataset.py --raw-root "D:\ABIDE" --pheno-root "D:\ABIDE\pheno" --o
 ---
 
 ## 6. Running the pipeline
+
+> **Only needed if you are retraining.** To just run the application, see the
+> [quick start](#quick-start--running-it-in-about-5-minutes) — the trained model
+> already ships.
 
 Run these in order, with the virtual environment activated. Each stage
 validates itself before the next is useful.
@@ -477,9 +552,25 @@ python create_dataset.py --raw-root "D:\ABIDE" --out-root "D:\output"
 
 Run the stages in order: `create_dataset.py` → `train_model.py` → `test_model.py`.
 
-### `No trained model at ...\best_model.keras. Run train_model.py first.`
+### `No trained model found in ...\Models`
 
-The models are not tracked in git, so a fresh clone has none. Train first.
+A fresh clone should contain `Models/neuroconnect_model.keras` (44.5 MB). If it
+is missing or is only a few hundred bytes, the clone did not fetch it — check
+whether the repository uses Git LFS:
+
+```powershell
+git lfs install
+git lfs pull
+```
+
+Otherwise download it from the repository's Releases page and place it in
+`Models/`, or train your own with `python train_model.py`.
+
+### `ERROR: missing ...\SampleData` or no scans to select
+
+`SampleData/` is 323 MB. If the clone was interrupted or the folder is empty,
+re-clone or fetch it again. Any `.nii` / `.nii.gz` brain MRI works as input —
+the sample scans are a convenience, not a requirement.
 
 ### The GUI's PREDICT button stays greyed out
 
